@@ -1,0 +1,42 @@
+resume-canvas-client/
+├─ public/
+├─ src/
+│  ├─ main.jsx
+│  ├─ App.jsx
+│  ├─ styles/
+│  │  ├─ globals.css
+│  │  └─ print.css
+│  ├─ pages/
+│  │  ├─ Home.jsx
+│  │  └─ Editor.jsx
+│  ├─ components/
+│  │  ├─ TopBar.jsx
+│  │  ├─ Sidebar.jsx
+│  │  ├─ Canvas.jsx
+│  │  ├─ Page.jsx
+│  │  ├─ Block.jsx
+│  │  └─ Properties.jsx
+│  ├─ store/
+│  │  └─ editorStore.js
+│  ├─ templates/
+│  │  ├─ ats.js
+│  │  └─ modern.js
+│  └─ utils/
+│     ├─ exportPdf.js
+│     └─ id.js
+├─ tailwind.config.js
+├─ vite.config.js
+└─ package.json
+
+
+resume-canvas-server/
+├─ src/
+│  ├─ server.js
+│  ├─ db.js
+│  ├─ routes.js
+│  └─ resume/
+│     ├─ model.js
+│     ├─ controller.js
+│     └─ routes.js
+├─ .env
+└─ package.json

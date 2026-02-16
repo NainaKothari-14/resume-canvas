@@ -1,0 +1,12 @@
+@media print {
+    /* Hide editor UI, print only the page */
+    .no-print {
+      display: none !important;
+    }
+  
+    /* ensure white background */
+    body {
+      background: white !important;
+    }
+  }
+  
