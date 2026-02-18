@@ -1,5 +1,18 @@
 import Resume from './model.js';
 
+// helper to format mongoose validation errors with paths
+const formatValidationError = (error) => {
+  const errors = error?.errors
+    ? Object.entries(error.errors).map(([path, err]) => ({
+        path,
+        message: err.message,
+        kind: err.kind,
+      }))
+    : [{ path: "", message: error.message, kind: "error" }];
+
+  return errors;
+};
+
 // @desc    Get all resumes for a user
 // @route   GET /api/resumes
 // @access  Public (will be Private with auth)
@@ -114,11 +127,10 @@ export const createResume = async (req, res) => {
     console.error('Stack:', error.stack);
     
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
-        errors: messages
+        errors: formatValidationError(error)
       });
     }
 
@@ -130,9 +142,8 @@ export const createResume = async (req, res) => {
   }
 };
 
-// @desc    Update resume
-// @route   PUT /api/resumes/:id
-// @access  Public (will be Private with auth)
+// ✅ @desc    Update resume (FULL UPDATE)
+// ✅ @route   PUT /api/resumes/:id
 export const updateResume = async (req, res) => {
   try {
     let resume = await Resume.findById(req.params.id);
@@ -144,14 +155,21 @@ export const updateResume = async (req, res) => {
       });
     }
 
+    // ✅ Ensure lastModified updates on full save too
+    const payload = {
+      ...req.body,
+      lastModified: new Date()
+    };
+
     resume = await Resume.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       {
         new: true,
-        runValidators: true
+        runValidators: true,
+        context: "query", // ✅ VERY IMPORTANT for validators on update
       }
-    );
+    ).select('-__v');
 
     return res.status(200).json({
       success: true,
@@ -168,12 +186,12 @@ export const updateResume = async (req, res) => {
       });
     }
 
+    // ✅ Return paths so frontend knows exactly what's failing
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
-        errors: messages
+        errors: formatValidationError(error)
       });
     }
 
@@ -187,7 +205,6 @@ export const updateResume = async (req, res) => {
 
 // @desc    Delete resume
 // @route   DELETE /api/resumes/:id
-// @access  Public (will be Private with auth)
 export const deleteResume = async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id);
@@ -226,7 +243,6 @@ export const deleteResume = async (req, res) => {
 
 // @desc    Duplicate resume
 // @route   POST /api/resumes/:id/duplicate
-// @access  Public (will be Private with auth)
 export const duplicateResume = async (req, res) => {
   try {
     const originalResume = await Resume.findById(req.params.id);
@@ -245,6 +261,7 @@ export const duplicateResume = async (req, res) => {
     delete resumeCopy.__v;
 
     resumeCopy.title = `${resumeCopy.title} (Copy)`;
+    resumeCopy.lastModified = new Date();
 
     const newResume = await Resume.create(resumeCopy);
 
@@ -273,7 +290,6 @@ export const duplicateResume = async (req, res) => {
 
 // @desc    Get resume statistics
 // @route   GET /api/resumes/stats
-// @access  Public (will be Private with auth)
 export const getResumeStats = async (req, res) => {
   try {
     const stats = await Resume.aggregate([
@@ -317,9 +333,8 @@ export const getResumeStats = async (req, res) => {
   }
 };
 
-// @desc    Auto-save resume (patch specific fields)
-// @route   PATCH /api/resumes/:id/autosave
-// @access  Public (will be Private with auth)
+// ✅ @desc Auto-save resume (PATCH specific fields)
+// ✅ @route PATCH /api/resumes/:id/autosave
 export const autoSaveResume = async (req, res) => {
   try {
     const resume = await Resume.findByIdAndUpdate(
@@ -330,7 +345,8 @@ export const autoSaveResume = async (req, res) => {
       },
       { 
         new: true,
-        runValidators: true
+        runValidators: true,
+        context: "query", // ✅ important
       }
     );
 
@@ -348,6 +364,16 @@ export const autoSaveResume = async (req, res) => {
     });
   } catch (error) {
     console.error('Error in autoSaveResume:', error);
+
+    // ✅ handle validation errors properly (400 not 500)
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation error",
+        errors: formatValidationError(error),
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Error auto-saving resume',
