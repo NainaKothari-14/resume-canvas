@@ -16,7 +16,7 @@ export default function Page({ pageId, blocks: pageBlocks, pageNumber }) {
     >
       {/* Page Number Indicator (optional, for visual reference) */}
       {pageNumber && (
-        <div className="absolute top-2 right-2 bg-neutral-900 text-white text-xs px-2 py-1 rounded opacity-50 pointer-events-none">
+        <div className="absolute top-2 right-2 bg-neutral-900 text-white text-xs px-2 py-1 rounded opacity-50 pointer-events-none pdf hidden">
           Page {pageNumber}
         </div>
       )}

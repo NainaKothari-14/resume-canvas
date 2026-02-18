@@ -152,18 +152,16 @@ export const useEditorStore = create((set, get) => ({
   // API METHODS
   // ============================================
 
-  // Load resume from backend
-  // Load resume from backend
   loadResume: async (id) => {
     try {
       console.log('🔍 loadResume called with ID:', id);
       set({ isSaving: true, saveError: null });
-      
+
       console.log('📡 Fetching resume from API...');
       const response = await resumeAPI.getById(id);
-      
+
       console.log('📦 API Response:', response);
-      
+
       if (response.success) {
         const resume = response.data;
         console.log('✅ Resume data received:', {
@@ -172,7 +170,7 @@ export const useEditorStore = create((set, get) => ({
           blocksCount: resume.blocks?.length || 0,
           pagesCount: resume.pages?.length || 0
         });
-        
+
         set({
           currentResumeId: resume._id,
           title: resume.title || 'Untitled Resume',
@@ -186,7 +184,7 @@ export const useEditorStore = create((set, get) => ({
           lastSaved: new Date(resume.updatedAt),
           saveError: null,
         });
-        
+
         console.log('✅ Store updated with resume data');
         console.log('✅ Resume loaded:', resume.title);
       } else {
@@ -195,65 +193,60 @@ export const useEditorStore = create((set, get) => ({
     } catch (error) {
       console.error('❌ Error loading resume:', error);
       console.error('❌ Error details:', error.response?.data);
-      set({ 
+      set({
         saveError: error.response?.data?.message || 'Failed to load resume',
-        isSaving: false 
+        isSaving: false
       });
     }
   },
-  // Save resume to backend
-// Save resume to backend
-// Save resume to backend
-saveResume: async () => {
-  try {
-    const state = get();
-    set({ isSaving: true, saveError: null });
 
-    // ✅ Generate title if empty
-    const titleToSave = state.title && state.title !== 'Untitled Resume' 
-      ? state.title 
-      : `Resume - ${state.resumeData.fullName}`;
+  saveResume: async () => {
+    try {
+      const state = get();
+      set({ isSaving: true, saveError: null });
 
-    const resumeData = {
-      title: titleToSave,  // ✅ Use generated title
-      pages: state.pages,
-      currentPageId: state.currentPageId,
-      blocks: state.blocks,
-      resumeData: state.resumeData,
-      sections: state.sections,
-      canvasView: state.canvasView,
-    };
+      const titleToSave = state.title && state.title !== 'Untitled Resume'
+        ? state.title
+        : `Resume - ${state.resumeData.fullName}`;
 
-    let response;
-    if (state.currentResumeId) {
-      // Update existing resume
-      response = await resumeAPI.update(state.currentResumeId, resumeData);
-      console.log('✅ Resume updated successfully!');
-    } else {
-      // Create new resume
-      response = await resumeAPI.create(resumeData);
-      console.log('✅ Resume created successfully!');
-    }
+      const resumeData = {
+        title: titleToSave,
+        pages: state.pages,
+        currentPageId: state.currentPageId,
+        blocks: state.blocks,
+        resumeData: state.resumeData,
+        sections: state.sections,
+        canvasView: state.canvasView,
+      };
 
-    if (response.success) {
+      let response;
+      if (state.currentResumeId) {
+        response = await resumeAPI.update(state.currentResumeId, resumeData);
+        console.log('✅ Resume updated successfully!');
+      } else {
+        response = await resumeAPI.create(resumeData);
+        console.log('✅ Resume created successfully!');
+      }
+
+      if (response.success) {
+        set({
+          currentResumeId: response.data._id,
+          title: response.data.title,
+          isSaving: false,
+          lastSaved: new Date(),
+          saveError: null,
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error('Error saving resume:', error);
       set({
-        currentResumeId: response.data._id,
-        title: response.data.title,  // ✅ Update title from response
-        isSaving: false,
-        lastSaved: new Date(),
-        saveError: null,
+        saveError: error.response?.data?.message || 'Failed to save resume',
+        isSaving: false
       });
-      return true;
+      return false;
     }
-  } catch (error) {
-    console.error('Error saving resume:', error);
-    set({ 
-      saveError: error.response?.data?.message || 'Failed to save resume',
-      isSaving: false 
-    });
-    return false;
-  }
-},
+  },
 
   // ============================================
   // HISTORY MANAGEMENT
@@ -262,14 +255,14 @@ saveResume: async () => {
   saveHistory: () => {
     const state = get();
     const historyState = createHistoryState(state);
-    
+
     const newHistory = state.history.slice(0, state.historyIndex + 1);
     newHistory.push(historyState);
-    
+
     if (newHistory.length > MAX_HISTORY) {
       newHistory.shift();
     }
-    
+
     set({
       history: newHistory,
       historyIndex: newHistory.length - 1,
@@ -280,10 +273,7 @@ saveResume: async () => {
     const { history, historyIndex } = get();
     if (historyIndex > 0) {
       const previousState = history[historyIndex - 1];
-      set({
-        ...previousState,
-        historyIndex: historyIndex - 1,
-      });
+      set({ ...previousState, historyIndex: historyIndex - 1 });
     }
   },
 
@@ -291,22 +281,12 @@ saveResume: async () => {
     const { history, historyIndex } = get();
     if (historyIndex < history.length - 1) {
       const nextState = history[historyIndex + 1];
-      set({
-        ...nextState,
-        historyIndex: historyIndex + 1,
-      });
+      set({ ...nextState, historyIndex: historyIndex + 1 });
     }
   },
 
-  canUndo: () => {
-    const { historyIndex } = get();
-    return historyIndex > 0;
-  },
-
-  canRedo: () => {
-    const { history, historyIndex } = get();
-    return historyIndex < history.length - 1;
-  },
+  canUndo: () => get().historyIndex > 0,
+  canRedo: () => get().historyIndex < get().history.length - 1,
 
   // ============================================
   // PAGE MANAGEMENT
@@ -315,42 +295,23 @@ saveResume: async () => {
   setCurrentPage: (pageId) => set({ currentPageId: pageId }),
 
   addPage: () => {
-    const newPage = {
-      id: `page-${nanoid()}`,
-      width: 794,
-      height: 1123,
-    };
-    
+    const newPage = { id: `page-${nanoid()}`, width: 794, height: 1123 };
     set((s) => {
-      const newState = {
-        pages: [...s.pages, newPage],
-        currentPageId: newPage.id,
-      };
       setTimeout(() => get().saveHistory(), 0);
-      return newState;
+      return { pages: [...s.pages, newPage], currentPageId: newPage.id };
     });
   },
 
   deletePage: (pageId) => {
     const { pages, currentPageId } = get();
     if (pages.length <= 1) return;
-    
+
     set((s) => {
       const newPages = s.pages.filter(p => p.id !== pageId);
-      const newCurrentPageId = pageId === currentPageId 
-        ? newPages[0].id 
-        : currentPageId;
-      
+      const newCurrentPageId = pageId === currentPageId ? newPages[0].id : currentPageId;
       const newBlocks = s.blocks.filter(b => b.pageId !== pageId);
-      
-      const newState = {
-        pages: newPages,
-        currentPageId: newCurrentPageId,
-        blocks: newBlocks,
-      };
-      
       setTimeout(() => get().saveHistory(), 0);
-      return newState;
+      return { pages: newPages, currentPageId: newCurrentPageId, blocks: newBlocks };
     });
   },
 
@@ -358,20 +319,13 @@ saveResume: async () => {
     const { pages, blocks } = get();
     const pageToDuplicate = pages.find(p => p.id === pageId);
     if (!pageToDuplicate) return;
-    
+
     const newPageId = `page-${nanoid()}`;
-    const newPage = {
-      ...pageToDuplicate,
-      id: newPageId,
-    };
-    
-    const pageBlocks = blocks.filter(b => b.pageId === pageId);
-    const newBlocks = pageBlocks.map(block => ({
-      ...block,
-      id: nanoid(),
-      pageId: newPageId,
-    }));
-    
+    const newPage = { ...pageToDuplicate, id: newPageId };
+    const newBlocks = blocks
+      .filter(b => b.pageId === pageId)
+      .map(block => ({ ...block, id: nanoid(), pageId: newPageId }));
+
     set((s) => {
       const pageIndex = s.pages.findIndex(p => p.id === pageId);
       const newPages = [
@@ -379,15 +333,8 @@ saveResume: async () => {
         newPage,
         ...s.pages.slice(pageIndex + 1),
       ];
-      
-      const newState = {
-        pages: newPages,
-        blocks: [...s.blocks, ...newBlocks],
-        currentPageId: newPageId,
-      };
-      
       setTimeout(() => get().saveHistory(), 0);
-      return newState;
+      return { pages: newPages, blocks: [...s.blocks, ...newBlocks], currentPageId: newPageId };
     });
   },
 
@@ -399,39 +346,31 @@ saveResume: async () => {
 
   setResumeField: (field, value) => {
     const blockId = BINDINGS[field];
-
     set((s) => {
       const newResumeData = { ...s.resumeData, [field]: value };
       const newBlocks = blockId
         ? s.blocks.map((b) => (b.id === blockId ? { ...b, content: value } : b))
         : s.blocks;
-
       setTimeout(() => get().saveHistory(), 0);
-      
-      return {
-        resumeData: newResumeData,
-        blocks: newBlocks,
-      };
+      return { resumeData: newResumeData, blocks: newBlocks };
     });
   },
 
-  // Section Management
   addSectionItem: (sectionName, item) =>
     set((s) => {
-      const newState = {
+      setTimeout(() => get().saveHistory(), 0);
+      return {
         sections: {
           ...s.sections,
           [sectionName]: [...(s.sections[sectionName] || []), { ...item, id: nanoid() }],
         },
       };
-      
-      setTimeout(() => get().saveHistory(), 0);
-      return newState;
     }),
 
   updateSectionItem: (sectionName, itemId, updates) =>
     set((s) => {
-      const newState = {
+      setTimeout(() => get().saveHistory(), 0);
+      return {
         sections: {
           ...s.sections,
           [sectionName]: s.sections[sectionName].map((item) =>
@@ -439,22 +378,17 @@ saveResume: async () => {
           ),
         },
       };
-      
-      setTimeout(() => get().saveHistory(), 0);
-      return newState;
     }),
 
   deleteSectionItem: (sectionName, itemId) =>
     set((s) => {
-      const newState = {
+      setTimeout(() => get().saveHistory(), 0);
+      return {
         sections: {
           ...s.sections,
           [sectionName]: s.sections[sectionName].filter((item) => item.id !== itemId),
         },
       };
-      
-      setTimeout(() => get().saveHistory(), 0);
-      return newState;
     }),
 
   // ============================================
@@ -463,116 +397,42 @@ saveResume: async () => {
 
   ensureBaseBlocks: () => {
     const { blocks, resumeData, currentPageId } = get();
-
     const exists = (id) => blocks.some((b) => b.id === id);
-
     if (exists(BINDINGS.fullName)) return;
 
     const nextBlocks = [...blocks];
 
     const addBoundText = (id, x, y, w, h, style, content) => {
-      nextBlocks.push({
-        id,
-        type: "text",
-        pageId: currentPageId,
-        x,
-        y,
-        w,
-        h,
-        style,
-        content,
-      });
+      nextBlocks.push({ id, type: "text", pageId: currentPageId, x, y, w, h, style, content });
     };
 
-    addBoundText(
-      BINDINGS.fullName,
-      60,
-      60,
-      650,
-      60,
+    addBoundText(BINDINGS.fullName, 60, 60, 650, 60,
       { fontSize: 32, fontWeight: 800, color: "#111111", align: "left", lineHeight: 1.15 },
-      resumeData.fullName
-    );
-
-    addBoundText(
-      BINDINGS.headline,
-      60,
-      115,
-      650,
-      36,
+      resumeData.fullName);
+    addBoundText(BINDINGS.headline, 60, 115, 650, 36,
       { fontSize: 14, fontWeight: 600, color: "#111111", align: "left", lineHeight: 1.35 },
-      resumeData.headline
-    );
-
-    addBoundText(
-      BINDINGS.email,
-      60,
-      155,
-      200,
-      28,
+      resumeData.headline);
+    addBoundText(BINDINGS.email, 60, 155, 200, 28,
       { fontSize: 12, fontWeight: 500, color: "#111111", align: "left", lineHeight: 1.35 },
-      resumeData.email
-    );
-
-    addBoundText(
-      BINDINGS.phone,
-      270,
-      155,
-      180,
-      28,
+      resumeData.email);
+    addBoundText(BINDINGS.phone, 270, 155, 180, 28,
       { fontSize: 12, fontWeight: 500, color: "#111111", align: "left", lineHeight: 1.35 },
-      resumeData.phone
-    );
-
-    addBoundText(
-      BINDINGS.location,
-      460,
-      155,
-      250,
-      28,
+      resumeData.phone);
+    addBoundText(BINDINGS.location, 460, 155, 250, 28,
       { fontSize: 12, fontWeight: 500, color: "#111111", align: "left", lineHeight: 1.35 },
-      resumeData.location
-    );
-
-    addBoundText(
-      BINDINGS.github,
-      60,
-      185,
-      200,
-      28,
+      resumeData.location);
+    addBoundText(BINDINGS.github, 60, 185, 200, 28,
       { fontSize: 11, fontWeight: 400, color: "#0066cc", align: "left", lineHeight: 1.35 },
-      resumeData.github
-    );
-
-    addBoundText(
-      BINDINGS.linkedin,
-      270,
-      185,
-      220,
-      28,
+      resumeData.github);
+    addBoundText(BINDINGS.linkedin, 270, 185, 220, 28,
       { fontSize: 11, fontWeight: 400, color: "#0066cc", align: "left", lineHeight: 1.35 },
-      resumeData.linkedin
-    );
-
-    addBoundText(
-      BINDINGS.portfolio,
-      500,
-      185,
-      210,
-      28,
+      resumeData.linkedin);
+    addBoundText(BINDINGS.portfolio, 500, 185, 210, 28,
       { fontSize: 11, fontWeight: 400, color: "#0066cc", align: "left", lineHeight: 1.35 },
-      resumeData.portfolio
-    );
-
-    addBoundText(
-      BINDINGS.summary,
-      60,
-      225,
-      650,
-      90,
+      resumeData.portfolio);
+    addBoundText(BINDINGS.summary, 60, 225, 650, 90,
       { fontSize: 12, fontWeight: 400, color: "#111111", align: "left", lineHeight: 1.45 },
-      resumeData.summary
-    );
+      resumeData.summary);
 
     set({ blocks: nextBlocks });
     setTimeout(() => get().saveHistory(), 0);
@@ -582,7 +442,6 @@ saveResume: async () => {
     set((s) => {
       const boundField = Object.keys(BINDINGS).find((k) => BINDINGS[k] === id);
       const updatedBlocks = s.blocks.map((b) => (b.id === id ? { ...b, ...patch } : b));
-
       setTimeout(() => get().saveHistory(), 0);
 
       if (boundField && typeof patch.content === "string") {
@@ -591,14 +450,12 @@ saveResume: async () => {
           resumeData: { ...s.resumeData, [boundField]: patch.content },
         };
       }
-
       return { blocks: updatedBlocks };
     }),
 
   updateBlockStyle: (id, stylePatch) =>
     set((s) => {
       setTimeout(() => get().saveHistory(), 0);
-      
       return {
         blocks: s.blocks.map((b) =>
           b.id === id ? { ...b, style: { ...b.style, ...stylePatch } } : b
@@ -606,32 +463,49 @@ saveResume: async () => {
       };
     }),
 
+  // ✅ FIXED addBlock — link type now has proper defaults
   addBlock: (type) => {
     const { currentPageId } = get();
     const id = nanoid();
+
+    // Default content per type
+    const contentMap = {
+      heading: "Section Heading",
+      text: "Click to edit text",
+      list: ["Bullet one", "Bullet two"],
+      divider: "",
+      link: "Click here",  // ✅ display text
+    };
+
+    // Default size per type
+    const sizeMap = {
+      heading: { w: 360, h: 40 },
+      text: { w: 360, h: 70 },
+      list: { w: 360, h: 80 },
+      divider: { w: 520, h: 18 },
+      link: { w: 220, h: 36 },  // ✅ compact size for a link
+    };
+
+    const { w, h } = sizeMap[type] || { w: 360, h: 70 };
+
     const base = {
       id,
       type,
       pageId: currentPageId,
       x: 80,
       y: 400,
-      w: type === "divider" ? 520 : 360,
-      h: type === "divider" ? 18 : 70,
+      w,
+      h,
       style: {
         fontSize: type === "heading" ? 20 : 14,
         fontWeight: type === "heading" ? 700 : 400,
-        color: "#111111",
+        color: type === "link" ? "#1a56db" : "#111111",  // ✅ links default to blue
         align: "left",
         lineHeight: 1.35,
       },
-      content:
-        type === "heading"
-          ? "Section Heading"
-          : type === "text"
-          ? "Click to edit text"
-          : type === "list"
-          ? ["• Bullet one", "• Bullet two"]
-          : "",
+      content: contentMap[type] ?? "",
+      // ✅ link blocks store their href in meta
+      meta: type === "link" ? { href: "" } : undefined,
     };
 
     set((s) => {
@@ -644,10 +518,10 @@ saveResume: async () => {
     const { pages, blocks } = get();
     const block = blocks.find(b => b.id === id);
     if (!block) return;
-    
+
     const page = pages.find(p => p.id === block.pageId);
     if (!page) return;
-    
+
     const nx = clamp(x, 0, page.width - 20);
     const ny = clamp(y, 0, page.height - 20);
     const nw = clamp(w, 40, page.width);
@@ -661,14 +535,24 @@ saveResume: async () => {
   deleteSelected: () => {
     const { selectedId } = get();
     if (!selectedId) return;
-    
     set((s) => {
       setTimeout(() => get().saveHistory(), 0);
-      
-      return {
-        blocks: s.blocks.filter((b) => b.id !== selectedId),
-        selectedId: null,
-      };
+      return { blocks: s.blocks.filter((b) => b.id !== selectedId), selectedId: null };
+    });
+  },
+
+  resetEditor: () => {
+    set({
+      title: 'Untitled Resume',
+      pages: [DEFAULT_PAGE],
+      currentPageId: "page-1",
+      blocks: [],
+      selectedId: null,
+      currentResumeId: null,
+      history: [],
+      historyIndex: -1,
+      saveError: null,
+      lastSaved: null,
     });
   },
 
@@ -684,36 +568,27 @@ saveResume: async () => {
 
   generateFromTemplate: (templateName) => {
     const { pages, resumeData, sections } = get();
-    
+
     const PAGE_HEIGHT = 1123;
     const PAGE_MARGIN_TOP = 60;
     const PAGE_MARGIN_BOTTOM = 60;
-    
+
     let generatedBlocks = [];
     let currentPageIndex = 0;
     let yOffset = PAGE_MARGIN_TOP;
-    
+
     const getPageId = (index) => {
-      if (index < pages.length) {
-        return pages[index].id;
-      }
+      if (index < pages.length) return pages[index].id;
       return `page-overflow-${index}`;
     };
-    
+
     const addBlock = (block) => {
       const blockHeight = block.h;
-      
       if (yOffset + blockHeight > PAGE_HEIGHT - PAGE_MARGIN_BOTTOM) {
         currentPageIndex++;
         yOffset = PAGE_MARGIN_TOP;
       }
-      
-      generatedBlocks.push({
-        ...block,
-        pageId: getPageId(currentPageIndex),
-        y: yOffset
-      });
-      
+      generatedBlocks.push({ ...block, pageId: getPageId(currentPageIndex), y: yOffset });
       yOffset += blockHeight + (block.spacing || 0);
     };
 
@@ -753,7 +628,6 @@ saveResume: async () => {
       content: resumeData.headline
     });
 
-    // Contact Info Row
     const contactY = yOffset;
     addBlock({
       id: BINDINGS.email,
@@ -765,7 +639,7 @@ saveResume: async () => {
       style: { fontSize: 11, fontWeight: 500, color: "#6b7280", align: "left", lineHeight: 1.35 },
       content: resumeData.email
     });
-    
+
     yOffset = contactY;
     addBlock({
       id: BINDINGS.phone,
@@ -777,7 +651,7 @@ saveResume: async () => {
       style: { fontSize: 11, fontWeight: 500, color: "#6b7280", align: "left", lineHeight: 1.35 },
       content: resumeData.phone
     });
-    
+
     yOffset = contactY;
     addBlock({
       id: BINDINGS.location,
@@ -790,7 +664,6 @@ saveResume: async () => {
       content: resumeData.location
     });
 
-    // Links Row
     const linksY = yOffset;
     addBlock({
       id: BINDINGS.github,
@@ -802,7 +675,7 @@ saveResume: async () => {
       style: { fontSize: 10, fontWeight: 400, color: "#0ea5e9", align: "left", lineHeight: 1.35 },
       content: resumeData.github
     });
-    
+
     yOffset = linksY;
     addBlock({
       id: BINDINGS.linkedin,
@@ -814,7 +687,7 @@ saveResume: async () => {
       style: { fontSize: 10, fontWeight: 400, color: "#0ea5e9", align: "left", lineHeight: 1.35 },
       content: resumeData.linkedin
     });
-    
+
     yOffset = linksY;
     addBlock({
       id: BINDINGS.portfolio,
@@ -827,7 +700,7 @@ saveResume: async () => {
       content: resumeData.portfolio
     });
 
-    // SUMMARY SECTION
+    // SUMMARY
     addBlock({
       id: nanoid(),
       type: "heading",
@@ -852,7 +725,7 @@ saveResume: async () => {
 
     addDivider();
 
-    // EXPERIENCE SECTION
+    // EXPERIENCE
     if (sections.experience && sections.experience.length > 0) {
       addBlock({
         id: nanoid(),
@@ -867,7 +740,7 @@ saveResume: async () => {
 
       sections.experience.forEach((exp) => {
         const expStartY = yOffset;
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -904,7 +777,7 @@ saveResume: async () => {
 
         const descLines = exp.description.split('\n').filter(l => l.trim()).length;
         const descHeight = Math.max(40, descLines * 17);
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -916,11 +789,11 @@ saveResume: async () => {
           content: exp.description
         });
       });
-      
+
       addDivider();
     }
 
-    // SKILLS SECTION
+    // SKILLS
     if (sections.skills && sections.skills.length > 0) {
       addBlock({
         id: nanoid(),
@@ -935,7 +808,7 @@ saveResume: async () => {
 
       sections.skills.forEach((skill) => {
         const skillY = yOffset;
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -959,12 +832,12 @@ saveResume: async () => {
           content: skill.items
         });
       });
-      
+
       yOffset += 8;
       addDivider();
     }
 
-    // EDUCATION SECTION
+    // EDUCATION
     if (sections.education && sections.education.length > 0) {
       addBlock({
         id: nanoid(),
@@ -979,7 +852,7 @@ saveResume: async () => {
 
       sections.education.forEach((edu) => {
         const eduY = yOffset;
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -1015,11 +888,11 @@ saveResume: async () => {
           content: instText
         });
       });
-      
+
       addDivider();
     }
 
-    // PROJECTS SECTION
+    // PROJECTS
     if (sections.projects && sections.projects.length > 0) {
       addBlock({
         id: nanoid(),
@@ -1034,7 +907,7 @@ saveResume: async () => {
 
       sections.projects.forEach((proj) => {
         const projY = yOffset;
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -1048,15 +921,17 @@ saveResume: async () => {
 
         if (proj.link) {
           yOffset = projY;
+          // ✅ Use actual link block for project links so they're clickable in PDF
           addBlock({
             id: nanoid(),
-            type: "text",
+            type: "link",
             x: 620,
             w: 90,
             h: 22,
             spacing: 4,
             style: { fontSize: 9, fontWeight: 500, color: "#0ea5e9", align: "right", lineHeight: 1.3 },
-            content: "Link"
+            content: "Link",
+            meta: { href: proj.link.startsWith('http') ? proj.link : `https://${proj.link}` },
           });
         } else {
           yOffset += 26;
@@ -1077,7 +952,7 @@ saveResume: async () => {
 
         const descLines = proj.description.split('\n').filter(l => l.trim()).length;
         const descHeight = Math.max(32, descLines * 15);
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -1089,11 +964,11 @@ saveResume: async () => {
           content: proj.description
         });
       });
-      
+
       addDivider();
     }
 
-    // ACHIEVEMENTS SECTION
+    // ACHIEVEMENTS
     if (sections.achievements && sections.achievements.length > 0) {
       addBlock({
         id: nanoid(),
@@ -1120,7 +995,7 @@ saveResume: async () => {
 
         const descLines = ach.description.split('\n').filter(l => l.trim()).length;
         const descHeight = Math.max(28, descLines * 15);
-        
+
         addBlock({
           id: nanoid(),
           type: "text",
@@ -1133,19 +1008,15 @@ saveResume: async () => {
         });
       });
     }
-    
+
     // Create additional pages if needed
     const pagesNeeded = currentPageIndex + 1;
     const newPages = [...pages];
-    
+
     for (let i = pages.length; i < pagesNeeded; i++) {
-      newPages.push({
-        id: `page-${nanoid()}`,
-        width: 794,
-        height: 1123,
-      });
+      newPages.push({ id: `page-${nanoid()}`, width: 794, height: 1123 });
     }
-    
+
     // Update page IDs for overflow blocks
     generatedBlocks = generatedBlocks.map(block => {
       if (block.pageId.startsWith('page-overflow-')) {
@@ -1154,12 +1025,10 @@ saveResume: async () => {
       }
       return block;
     });
-    
-    // Replace all blocks and update pages
+
     set((s) => {
       setTimeout(() => get().saveHistory(), 0);
-      
-      return { 
+      return {
         pages: newPages,
         blocks: generatedBlocks,
         selectedId: null,

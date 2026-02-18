@@ -40,19 +40,16 @@ const FormField = memo(
           />
         )}
 
-        {/* ✅ Clickable link preview */}
+        {/* ✅ Clickable link preview — plain <a> works now that Section uses div not button */}
         {isLinkPreview && safeValue.trim() && (
-          <div className="text-xs">
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:underline break-all"
-              onClick={(e) => e.stopPropagation()}
-            >
-              Open: {safeValue}
-            </a>
-          </div>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-xs text-blue-400 hover:text-blue-300 underline break-all cursor-pointer mt-1"
+          >
+            Open: {safeValue}
+          </a>
         )}
       </div>
     );
@@ -61,20 +58,28 @@ const FormField = memo(
 
 FormField.displayName = "FormField";
 
-// ✅ Collapsible Section
+// ✅ Collapsible Section — uses div+role instead of <button> to avoid
+// invalid HTML nesting (interactive elements inside <button> breaks clicks in Edge/Chrome)
 const Section = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-neutral-200 hover:bg-neutral-900 rounded-xl transition-colors"
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen((prev) => !prev)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-neutral-200 hover:bg-neutral-900 rounded-xl transition-colors cursor-pointer select-none"
       >
         <span>{title}</span>
         {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
+      </div>
       {isOpen && <div className="px-3 pb-3 space-y-3">{children}</div>}
     </div>
   );
@@ -242,45 +247,65 @@ const AchievementItem = memo(({ item, onUpdate, onDelete }) => (
 ));
 AchievementItem.displayName = "AchievementItem";
 
-// ✅ Project Item
-const ProjectItem = memo(({ item, onUpdate, onDelete }) => (
-  <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-800 space-y-2">
-    <div className="flex items-center gap-2">
+// ✅ Project Item with clickable link
+const ProjectItem = memo(({ item, onUpdate, onDelete }) => {
+  const href = formatUrl(item.link || "");
+
+  return (
+    <div className="p-3 bg-neutral-900 rounded-lg border border-neutral-800 space-y-2">
+      <div className="flex items-center gap-2">
+        <input
+          className="flex-1 px-2 py-1.5 text-sm font-medium bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
+          value={item.name}
+          onChange={(e) => onUpdate({ name: e.target.value })}
+          placeholder="Project Name"
+        />
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* ✅ Link input + clickable preview */}
+      <div className="space-y-1">
+        <input
+          className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
+          value={item.link || ""}
+          onChange={(e) => onUpdate({ link: e.target.value })}
+          placeholder="Link (optional) - e.g., github.com/user/project"
+        />
+        {/* ✅ Plain <a> — works correctly now that Section no longer uses <button> */}
+        {item.link?.trim() && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-xs text-blue-400 hover:text-blue-300 underline break-all cursor-pointer"
+          >
+            Open: {item.link}
+          </a>
+        )}
+      </div>
+
       <input
-        className="flex-1 px-2 py-1.5 text-sm font-medium bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
-        value={item.name}
-        onChange={(e) => onUpdate({ name: e.target.value })}
-        placeholder="Project Name"
+        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
+        value={item.tech || ""}
+        onChange={(e) => onUpdate({ tech: e.target.value })}
+        placeholder="Tech Stack"
       />
-      <button
-        type="button"
-        onClick={onDelete}
-        className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
-      >
-        <Trash2 size={14} />
-      </button>
+      <textarea
+        className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700 resize-none"
+        value={item.description}
+        onChange={(e) => onUpdate({ description: e.target.value })}
+        placeholder="Project description..."
+        rows={2}
+      />
     </div>
-    <input
-      className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
-      value={item.link || ""}
-      onChange={(e) => onUpdate({ link: e.target.value })}
-      placeholder="Link (optional)"
-    />
-    <input
-      className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700"
-      value={item.tech || ""}
-      onChange={(e) => onUpdate({ tech: e.target.value })}
-      placeholder="Tech Stack"
-    />
-    <textarea
-      className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700 resize-none"
-      value={item.description}
-      onChange={(e) => onUpdate({ description: e.target.value })}
-      placeholder="Project description..."
-      rows={2}
-    />
-  </div>
-));
+  );
+});
 ProjectItem.displayName = "ProjectItem";
 
 // ✅ Main Form Component
@@ -401,7 +426,6 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("experience", item.id)}
             />
           ))}
-
           <button
             type="button"
             onClick={() =>
@@ -433,7 +457,6 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("skills", item.id)}
             />
           ))}
-
           <button
             type="button"
             onClick={() =>
@@ -461,7 +484,6 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("education", item.id)}
             />
           ))}
-
           <button
             type="button"
             onClick={() =>
@@ -493,7 +515,6 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("projects", item.id)}
             />
           ))}
-
           <button
             type="button"
             onClick={() =>
@@ -523,7 +544,6 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("achievements", item.id)}
             />
           ))}
-
           <button
             type="button"
             onClick={() =>

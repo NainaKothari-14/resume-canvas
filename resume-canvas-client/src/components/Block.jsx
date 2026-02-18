@@ -25,10 +25,8 @@ const linkify = (text) => {
 
   str.replace(URL_REGEX, (match, _g1, _g2, _g3, _g4, offset) => {
     if (offset > lastIndex) parts.push(str.slice(lastIndex, offset));
-
     const href = formatUrl(match);
     parts.push({ type: "link", text: match, href });
-
     lastIndex = offset + match.length;
     return match;
   });
@@ -40,12 +38,10 @@ const linkify = (text) => {
 /** Render linkified text as React nodes */
 const RenderLinkified = ({ text }) => {
   const parts = linkify(text);
-
   return (
     <>
       {parts.map((p, idx) => {
         if (typeof p === "string") return <span key={idx}>{p}</span>;
-
         return (
           <a
             key={idx}
@@ -53,7 +49,6 @@ const RenderLinkified = ({ text }) => {
             target="_blank"
             rel="noopener noreferrer"
             className="underline no-drag"
-            // these help, but the REAL fix is Rnd.cancel
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
@@ -90,52 +85,49 @@ function Block({ block }) {
   const editableRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // For link block — local state while editing fields
+  const [linkDisplayText, setLinkDisplayText] = useState("");
+  const [linkHref, setLinkHref] = useState("");
+
   const renderContent = () => {
-    // DIVIDER
+    // ─── DIVIDER ───────────────────────────────────────────────
     if (block.type === "divider") {
       const dividerColor = block.style?.color || "#e5e7eb";
       return (
         <div className="w-full h-full flex items-center">
           <div
             className="w-full"
-            style={{
-              height: "2px",
-              backgroundColor: dividerColor,
-              borderRadius: "1px",
-            }}
+            style={{ height: "2px", backgroundColor: dividerColor, borderRadius: "1px" }}
           />
         </div>
       );
     }
 
-    // LIST (✅ links clickable inside list items)
-    // LIST (editable items)
+    // ─── LIST ──────────────────────────────────────────────────
     if (block.type === "list") {
       const items = Array.isArray(block.content) ? block.content : [];
-    
+
       const updateItem = (index, value) => {
         const next = [...items];
         next[index] = value;
         updateBlock(block.id, { content: next });
       };
-    
+
       const addItem = () => {
         updateBlock(block.id, { content: [...items, "New bullet"] });
       };
-    
+
       const removeItem = (index) => {
         const next = items.filter((_, i) => i !== index);
         updateBlock(block.id, { content: next });
       };
-    
+
       return (
         <div className="w-full h-full">
           <ul style={{ ...commonStyle }} className="list-none space-y-1">
             {items.map((t, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <span className="mt-1 select-none">•</span>
-    
-                {/* editable text */}
                 <div
                   className="flex-1 outline-none cursor-text"
                   contentEditable
@@ -148,12 +140,7 @@ function Block({ block }) {
                     updateItem(idx, e.currentTarget.textContent ?? "");
                   }}
                   onKeyDown={(e) => {
-                    // Enter = new bullet
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addItem();
-                    }
-                    // Backspace on empty bullet = delete it
+                    if (e.key === "Enter") { e.preventDefault(); addItem(); }
                     if (e.key === "Backspace" && (e.currentTarget.textContent ?? "").trim() === "") {
                       e.preventDefault();
                       removeItem(idx);
@@ -165,26 +152,128 @@ function Block({ block }) {
               </li>
             ))}
           </ul>
-    
-          {/* small add button (only when selected) */}
           {isSelected && (
             <button
               type="button"
               className="mt-2 text-xs px-2 py-1 rounded bg-neutral-100/70 hover:bg-neutral-200"
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-                addItem();
-              }}
+              onClick={(e) => { e.stopPropagation(); addItem(); }}
             >
               + Add bullet
             </button>
           )}
         </div>
       );
-    }    
+    }
 
-    // TEXT / HEADING
+    // ─── LINK BLOCK ────────────────────────────────────────────
+    if (block.type === "link") {
+      // Store: block.content = display text, block.meta?.href = URL
+      // Fallback: if content looks like a URL, use it as href too
+      const savedHref = block.meta?.href || "";
+      const savedDisplay = block.content || savedHref || "Click here";
+      const formattedHref = formatUrl(savedHref);
+
+      // Editing mode — show two inputs: display text + URL
+      if (isEditing) {
+        return (
+          <div
+            className="w-full h-full flex flex-col gap-2 p-1"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* Display text input */}
+            <div>
+              <div className="text-[10px] text-neutral-400 mb-0.5 font-medium">Display text</div>
+              <input
+                autoFocus
+                className="w-full text-sm px-2 py-1.5 rounded-lg border-2 border-blue-400 bg-white text-neutral-800 outline-none"
+                placeholder="Click here"
+                value={linkDisplayText}
+                onChange={(e) => setLinkDisplayText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setIsEditing(false); }}
+              />
+            </div>
+
+            {/* URL input */}
+            <div>
+              <div className="text-[10px] text-neutral-400 mb-0.5 font-medium">URL</div>
+              <input
+                className="w-full text-sm px-2 py-1.5 rounded-lg border-2 border-neutral-300 bg-white text-neutral-800 outline-none"
+                placeholder="https://example.com"
+                value={linkHref}
+                onChange={(e) => setLinkHref(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === "Escape") {
+                    updateBlock(block.id, {
+                      content: linkDisplayText || linkHref,
+                      meta: { ...block.meta, href: linkHref },
+                    });
+                    setIsEditing(false);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Save button */}
+            <button
+              type="button"
+              className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors self-start"
+              onClick={() => {
+                updateBlock(block.id, {
+                  content: linkDisplayText || linkHref,
+                  meta: { ...block.meta, href: linkHref },
+                });
+                setIsEditing(false);
+              }}
+            >
+              Save
+            </button>
+          </div>
+        );
+      }
+
+      // View mode — show clickable link
+      return (
+        <div
+          className="w-full h-full flex items-center"
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            // Pre-populate local state with current saved values
+            setLinkDisplayText(savedDisplay);
+            setLinkHref(savedHref);
+            setIsEditing(true);
+          }}
+        >
+          {savedHref ? (
+            <a
+              href={formattedHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                ...commonStyle,
+                color: block.style?.color || "#1a56db",
+                textDecoration: "underline",
+              }}
+              className="no-drag hover:opacity-75 transition-opacity cursor-pointer"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {savedDisplay}
+            </a>
+          ) : (
+            // No URL set yet — show placeholder prompt
+            <span
+              className="text-sm text-neutral-400 italic select-none"
+              style={commonStyle}
+            >
+              Double-click to set link URL
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    // ─── TEXT / HEADING ────────────────────────────────────────
     if (isEditing) {
       return (
         <div
@@ -223,7 +312,7 @@ function Block({ block }) {
       );
     }
 
-    // Not editing -> clickable links
+    // Not editing → render with clickable links via linkify
     return (
       <div
         style={{
@@ -240,9 +329,7 @@ function Block({ block }) {
         onDoubleClick={(e) => {
           e.stopPropagation();
           setIsEditing(true);
-          setTimeout(() => {
-            editableRef.current?.focus?.();
-          }, 0);
+          setTimeout(() => { editableRef.current?.focus?.(); }, 0);
         }}
       >
         <RenderLinkified text={block.content} />
@@ -252,16 +339,7 @@ function Block({ block }) {
 
   const resizeConfig =
     block.type === "divider"
-      ? {
-          top: false,
-          right: true,
-          bottom: false,
-          left: true,
-          topRight: false,
-          bottomRight: false,
-          bottomLeft: false,
-          topLeft: false,
-        }
+      ? { top: false, right: true, bottom: false, left: true, topRight: false, bottomRight: false, bottomLeft: false, topLeft: false }
       : true;
 
   return (
@@ -286,25 +364,18 @@ function Block({ block }) {
       dragHandleClassName="drag-handle"
       disableDragging={isEditing}
       style={{ direction: "ltr" }}
-      // ✅ THE KEY FIX: Rnd will NOT start drag from links / editable
-      cancel="a, .no-drag, [contenteditable=true]"
+      cancel="a, .no-drag, [contenteditable=true], input, button"
     >
       <div
         className="w-full h-full relative"
-        style={{
-          padding: "8px",
-          direction: "ltr",
-        }}
+        style={{ padding: "8px", direction: "ltr" }}
       >
         {isSelected && (
           <div
             className="drag-handle absolute left-1/2 -translate-x-1/2 h-1.5 w-12 rounded-full bg-neutral-400 hover:bg-neutral-500 cursor-move transition-colors"
-            style={{
-              top: block.type === "divider" ? "-10px" : "-12px",
-            }}
+            style={{ top: block.type === "divider" ? "-10px" : "-12px" }}
           />
         )}
-
         {renderContent()}
       </div>
     </Rnd>
@@ -319,6 +390,7 @@ export default memo(Block, (prev, next) => {
     prev.block.y === next.block.y &&
     prev.block.w === next.block.w &&
     prev.block.h === next.block.h &&
-    JSON.stringify(prev.block.style) === JSON.stringify(next.block.style)
+    JSON.stringify(prev.block.style) === JSON.stringify(next.block.style) &&
+    JSON.stringify(prev.block.meta) === JSON.stringify(next.block.meta)
   );
 });

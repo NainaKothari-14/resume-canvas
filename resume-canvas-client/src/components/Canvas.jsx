@@ -301,6 +301,7 @@ export default function Canvas({ printRef }) {
                 return (
                   <div
                     key={page.id}
+                    data-page-id={page.id} 
                     onClick={(e) => {
                       // ✅ If user clicked a link, do NOT change page / re-render
                       if (e.target.closest("a")) return;
