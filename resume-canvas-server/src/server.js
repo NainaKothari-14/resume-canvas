@@ -1,12 +1,12 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import connectDB from './db.js';
-import routes from './routes.js';
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
+import connectDB from "./db.js";
+import routes from "./routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -18,57 +18,82 @@ const app = express();
 connectDB();
 
 // Security Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
-// CORS Configuration
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173'
-];
+/**
+ * ✅ CORS (Vercel ↔ Render FIX)
+ * - allows your deployed Vercel origin
+ * - allows localhost for dev
+ * - supports OPTIONS preflight correctly
+ * - trims trailing slash safely
+ */
+const normalizeOrigin = (u) => (typeof u === "string" ? u.replace(/\/$/, "") : u);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow server-to-server
+const allowedOrigins = new Set(
+  [process.env.CLIENT_URL, "http://localhost:5173"]
+    .filter(Boolean)
+    .map(normalizeOrigin)
+);
 
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow server-to-server / curl
+      if (!origin) return callback(null, true);
 
+      const normalized = normalizeOrigin(origin);
+
+      if (allowedOrigins.has(normalized)) {
+        return callback(null, true);
+      }
+
+      // helpful debug in Render logs
+      console.log("❌ CORS blocked origin:", origin);
+      console.log("✅ Allowed origins:", Array.from(allowedOrigins));
+
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+  })
+);
+
+// ✅ IMPORTANT: respond to preflight requests
+app.options("*", cors());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again later.'
+    message: "Too many requests from this IP, please try again later.",
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 // Apply rate limiting to all API routes
-app.use('/api/', limiter);
+app.use("/api/", limiter);
 
 // Body Parser Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Compression Middleware
 app.use(compression());
 
 // Logging Middleware
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
 } else {
-  app.use(morgan('combined'));
+  app.use(morgan("combined"));
 }
 
 // Request Logging Middleware (custom)
@@ -78,43 +103,55 @@ app.use((req, res, next) => {
 });
 
 // Root Route
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Resume Canvas Server is running! 🚀',
-    version: '1.0.0',
+    message: "Resume Canvas Server is running! 🚀",
+    version: "1.0.0",
     environment: process.env.NODE_ENV,
     endpoints: {
-      api: '/api',
-      health: '/api/health',
-      resumes: '/api/resumes'
-    }
+      api: "/api",
+      health: "/api/health",
+      resumes: "/api/resumes",
+    },
   });
 });
 
 // Mount API Routes
-app.use('/api', routes);
+app.use("/api", routes);
 
 // 404 Handler - MUST be BEFORE error handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
-    requestedUrl: req.originalUrl
+    message: "Route not found",
+    requestedUrl: req.originalUrl,
   });
 });
 
 // Global Error Handler - MUST be LAST
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
+
+  // Handle CORS errors explicitly (so you can see them)
+  if (String(err.message || "").includes("Not allowed by CORS")) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+      origin: req.headers.origin || null,
+    });
+  }
 
   // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map(e => e.message);
+  if (err.name === "ValidationError") {
+    const errors = Object.entries(err.errors).map(([path, e]) => ({
+      path,
+      message: e.message,
+    }));
     return res.status(400).json({
       success: false,
-      message: 'Validation Error',
-      errors
+      message: "Validation Error",
+      errors,
     });
   }
 
@@ -122,30 +159,30 @@ app.use((err, req, res, next) => {
   if (err.code === 11000) {
     return res.status(400).json({
       success: false,
-      message: 'Duplicate field value entered'
+      message: "Duplicate field value entered",
     });
   }
 
   // JWT errors
-  if (err.name === 'JsonWebTokenError') {
+  if (err.name === "JsonWebTokenError") {
     return res.status(401).json({
       success: false,
-      message: 'Invalid token'
+      message: "Invalid token",
     });
   }
 
-  if (err.name === 'TokenExpiredError') {
+  if (err.name === "TokenExpiredError") {
     return res.status(401).json({
       success: false,
-      message: 'Token expired'
+      message: "Token expired",
     });
   }
 
   // Default error
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: err.message || "Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
@@ -156,28 +193,28 @@ const server = app.listen(PORT, () => {
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('❌ Unhandled Rejection:', err);
+process.on("unhandledRejection", (err) => {
+  console.error("❌ Unhandled Rejection:", err);
   server.close(() => {
-    console.log('Server closed due to unhandled rejection');
+    console.log("Server closed due to unhandled rejection");
     process.exit(1);
   });
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
   server.close(() => {
-    console.log('Server closed due to uncaught exception');
+    console.log("Server closed due to uncaught exception");
     process.exit(1);
   });
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM received. Shutting down gracefully...');
+process.on("SIGTERM", () => {
+  console.log("👋 SIGTERM received. Shutting down gracefully...");
   server.close(() => {
-    console.log('Process terminated');
+    console.log("Process terminated");
   });
 });
 
