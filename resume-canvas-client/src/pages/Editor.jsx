@@ -9,7 +9,7 @@ import { useReactToPrint } from "react-to-print";
 import { getPrintTitle } from "../utils/exportPdf.js";
 
 export default function Editor() {
-  const { id } = useParams(); // Get resume ID from URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const printRef = useRef(null);
 
@@ -18,13 +18,27 @@ export default function Editor() {
   const ensureBaseBlocks = useEditorStore((s) => s.ensureBaseBlocks);
   const loadResume = useEditorStore((s) => s.loadResume);
   const resetEditor = useEditorStore((s) => s.resetEditor);
+  
+  // ✅ Add these debug logs
+  const blocks = useEditorStore((s) => s.blocks);
+  const currentResumeId = useEditorStore((s) => s.currentResumeId);
+  const title = useEditorStore((s) => s.title);
+
+  console.log('🔍 Editor State:', {
+    urlId: id,
+    currentResumeId,
+    title,
+    blocksCount: blocks.length
+  });
 
   useEffect(() => {
+    console.log('🔄 Editor useEffect triggered, ID:', id);
+    
     if (id) {
-      // Load existing resume
+      console.log('📥 Loading resume:', id);
       loadResume(id);
     } else {
-      // Create new resume
+      console.log('🆕 Creating new resume');
       resetEditor();
       ensureBaseBlocks();
     }

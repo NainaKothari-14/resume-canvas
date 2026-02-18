@@ -28,11 +28,12 @@ const createHistoryState = (state) => ({
 });
 
 export const useEditorStore = create((set, get) => ({
+  // Core State
+  title: 'Untitled Resume',
   pages: [DEFAULT_PAGE],
   currentPageId: "page-1",
   blocks: [],
   selectedId: null,
-  title: 'Untitled Resume',
 
   // Undo/Redo state
   history: [],
@@ -72,10 +73,8 @@ export const useEditorStore = create((set, get) => ({
       canvasView: { ...s.canvasView, zoom: 1, panOffset: { x: 0, y: 0 } },
     })),
 
-//For title
-title: 'Untitled Resume',
-
-setTitle: (title) => set({ title }),
+  // Title Management
+  setTitle: (title) => set({ title }),
 
   // Basic Info
   resumeData: {
@@ -90,7 +89,7 @@ setTitle: (title) => set({ title }),
     portfolio: "yourportfolio.com",
   },
 
-  // Dynamic Sections (Experience, Skills, Education, Achievements, etc.)
+  // Dynamic Sections
   sections: {
     experience: [
       {
@@ -154,16 +153,29 @@ setTitle: (title) => set({ title }),
   // ============================================
 
   // Load resume from backend
+  // Load resume from backend
   loadResume: async (id) => {
     try {
+      console.log('🔍 loadResume called with ID:', id);
       set({ isSaving: true, saveError: null });
+      
+      console.log('📡 Fetching resume from API...');
       const response = await resumeAPI.getById(id);
+      
+      console.log('📦 API Response:', response);
       
       if (response.success) {
         const resume = response.data;
+        console.log('✅ Resume data received:', {
+          id: resume._id,
+          title: resume.title,
+          blocksCount: resume.blocks?.length || 0,
+          pagesCount: resume.pages?.length || 0
+        });
+        
         set({
           currentResumeId: resume._id,
-          title: resume.title || 'Untitled Resume', 
+          title: resume.title || 'Untitled Resume',
           pages: resume.pages || [DEFAULT_PAGE],
           currentPageId: resume.currentPageId || "page-1",
           blocks: resume.blocks || [],
@@ -174,150 +186,73 @@ setTitle: (title) => set({ title }),
           lastSaved: new Date(resume.updatedAt),
           saveError: null,
         });
-        console.log('✅ Resume loaded successfully!');
+        
+        console.log('✅ Store updated with resume data');
+        console.log('✅ Resume loaded:', resume.title);
+      } else {
+        console.error('❌ API returned success:false');
       }
     } catch (error) {
-      console.error('Error loading resume:', error);
+      console.error('❌ Error loading resume:', error);
+      console.error('❌ Error details:', error.response?.data);
       set({ 
         saveError: error.response?.data?.message || 'Failed to load resume',
         isSaving: false 
       });
     }
   },
-
   // Save resume to backend
-  saveResume: async () => {
-    try {
-      const state = get();
-      set({ isSaving: true, saveError: null });
+// Save resume to backend
+// Save resume to backend
+saveResume: async () => {
+  try {
+    const state = get();
+    set({ isSaving: true, saveError: null });
 
-      const resumeData = {
-        title: state.title,
-        pages: state.pages,
-        currentPageId: state.currentPageId,
-        blocks: state.blocks,
-        resumeData: state.resumeData,
-        sections: state.sections,
-        canvasView: state.canvasView,
-      };
+    // ✅ Generate title if empty
+    const titleToSave = state.title && state.title !== 'Untitled Resume' 
+      ? state.title 
+      : `Resume - ${state.resumeData.fullName}`;
 
-      let response;
-      if (state.currentResumeId) {
-        // Update existing resume
-        response = await resumeAPI.update(state.currentResumeId, resumeData);
-        console.log('✅ Resume updated successfully!');
-      } else {
-        // Create new resume
-        response = await resumeAPI.create({
-          ...resumeData,
-          title: `Resume - ${state.resumeData.fullName}`,
-        });
-        console.log('✅ Resume created successfully!');
-      }
+    const resumeData = {
+      title: titleToSave,  // ✅ Use generated title
+      pages: state.pages,
+      currentPageId: state.currentPageId,
+      blocks: state.blocks,
+      resumeData: state.resumeData,
+      sections: state.sections,
+      canvasView: state.canvasView,
+    };
 
-      if (response.success) {
-        set({
-          currentResumeId: response.data._id,
-          isSaving: false,
-          lastSaved: new Date(),
-          saveError: null,
-        });
-        return true;
-      }
-    } catch (error) {
-      console.error('Error saving resume:', error);
-      set({ 
-        saveError: error.response?.data?.message || 'Failed to save resume',
-        isSaving: false 
+    let response;
+    if (state.currentResumeId) {
+      // Update existing resume
+      response = await resumeAPI.update(state.currentResumeId, resumeData);
+      console.log('✅ Resume updated successfully!');
+    } else {
+      // Create new resume
+      response = await resumeAPI.create(resumeData);
+      console.log('✅ Resume created successfully!');
+    }
+
+    if (response.success) {
+      set({
+        currentResumeId: response.data._id,
+        title: response.data.title,  // ✅ Update title from response
+        isSaving: false,
+        lastSaved: new Date(),
+        saveError: null,
       });
-      return false;
+      return true;
     }
-  },
-
-  // Auto-save (lighter version - only saves blocks and canvas view)
-  autoSave: async () => {
-    try {
-      const state = get();
-      if (!state.currentResumeId) {
-        // If no resume ID, do a full save
-        return await get().saveResume();
-      }
-
-      const autoSaveData = {
-        blocks: state.blocks,
-        canvasView: state.canvasView,
-      };
-
-      const response = await resumeAPI.autoSave(state.currentResumeId, autoSaveData);
-      
-      if (response.success) {
-        set({ 
-          lastSaved: new Date(response.data.lastModified),
-          saveError: null 
-        });
-        console.log('💾 Auto-saved');
-        return true;
-      }
-    } catch (error) {
-      console.error('Auto-save error:', error);
-      return false;
-    }
-  },
-
-  // Create new resume (reset state)
-  newResume: () => {
-    set({
-      currentResumeId: null,
-      title: 'Untitled Resume',
-      pages: [DEFAULT_PAGE],
-      currentPageId: "page-1",
-      blocks: [],
-      selectedId: null,
-      history: [],
-      historyIndex: -1,
-      lastSaved: null,
-      saveError: null,
-      isSaving: false,
+  } catch (error) {
+    console.error('Error saving resume:', error);
+    set({ 
+      saveError: error.response?.data?.message || 'Failed to save resume',
+      isSaving: false 
     });
-    console.log('📄 New resume created');
-  },
-  // Reset editor (for creating new resume)
-resetEditor: () => {
-  set({
-    currentResumeId: null,
-    title: 'Untitled Resume',  // ✅ Add this
-    pages: [DEFAULT_PAGE],
-    currentPageId: "page-1",
-    blocks: [],
-    selectedId: null,
-    resumeData: {
-      fullName: 'Your Name',
-      headline: 'Your Professional Headline',
-      email: 'you@email.com',
-      phone: '+1 (555) 000-0000',
-      location: 'City, Country',
-      summary: 'Your professional summary...',
-      github: '',
-      linkedin: '',
-      portfolio: '',
-    },
-    sections: {
-      experience: [],
-      skills: [],
-      education: [],
-      achievements: [],
-      projects: [],
-    },
-    canvasView: {
-      zoom: 1,
-      panOffset: { x: 0, y: 0 },
-      showGrid: false,
-    },
-    history: [],
-    historyIndex: -1,
-    lastSaved: null,
-    saveError: null,
-  });
+    return false;
+  }
 },
 
   // ============================================
@@ -328,13 +263,9 @@ resetEditor: () => {
     const state = get();
     const historyState = createHistoryState(state);
     
-    // Remove any future history if we're not at the end
     const newHistory = state.history.slice(0, state.historyIndex + 1);
-    
-    // Add new state
     newHistory.push(historyState);
     
-    // Limit history size
     if (newHistory.length > MAX_HISTORY) {
       newHistory.shift();
     }
@@ -402,7 +333,7 @@ resetEditor: () => {
 
   deletePage: (pageId) => {
     const { pages, currentPageId } = get();
-    if (pages.length <= 1) return; // Don't delete the last page
+    if (pages.length <= 1) return;
     
     set((s) => {
       const newPages = s.pages.filter(p => p.id !== pageId);
@@ -410,7 +341,6 @@ resetEditor: () => {
         ? newPages[0].id 
         : currentPageId;
       
-      // Remove blocks associated with this page
       const newBlocks = s.blocks.filter(b => b.pageId !== pageId);
       
       const newState = {
@@ -435,7 +365,6 @@ resetEditor: () => {
       id: newPageId,
     };
     
-    // Duplicate all blocks from this page
     const pageBlocks = blocks.filter(b => b.pageId === pageId);
     const newBlocks = pageBlocks.map(block => ({
       ...block,
@@ -532,7 +461,6 @@ resetEditor: () => {
   // BLOCK OPERATIONS
   // ============================================
 
-  // Initialize base blocks (header only)
   ensureBaseBlocks: () => {
     const { blocks, resumeData, currentPageId } = get();
 
@@ -556,7 +484,6 @@ resetEditor: () => {
       });
     };
 
-    // Header section
     addBoundText(
       BINDINGS.fullName,
       60,
@@ -577,7 +504,6 @@ resetEditor: () => {
       resumeData.headline
     );
 
-    // Contact info row
     addBoundText(
       BINDINGS.email,
       60,
@@ -608,7 +534,6 @@ resetEditor: () => {
       resumeData.location
     );
 
-    // Links row
     addBoundText(
       BINDINGS.github,
       60,
@@ -639,7 +564,6 @@ resetEditor: () => {
       resumeData.portfolio
     );
 
-    // Summary
     addBoundText(
       BINDINGS.summary,
       60,

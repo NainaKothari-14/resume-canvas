@@ -81,7 +81,9 @@ const resumeSchema = new mongoose.Schema({
   // Resume metadata
   title: {
     type: String,
-    default: 'Untitled Resume'
+    default: function() {
+      return `Resume - ${this.resumeData?.fullName || 'Untitled'}`;
+    }
   },
   
   // Pages
