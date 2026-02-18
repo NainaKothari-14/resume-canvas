@@ -1,14 +1,14 @@
 import { useEditorStore } from "../store/editorStore";
-import { Type, Heading1, List, Minus, Sparkles, Info } from "lucide-react";
+import { Type, Heading1, List, Minus, Sparkles, Info, Link2 } from "lucide-react";
 
 export default function Sidebar({ onAdd }) {
   const generateFromTemplate = useEditorStore((s) => s.generateFromTemplate);
 
   const handleGenerate = () => {
-    if (typeof generateFromTemplate === 'function') {
-      generateFromTemplate('ats');
+    if (typeof generateFromTemplate === "function") {
+      generateFromTemplate("ats");
     } else {
-      console.error('generateFromTemplate is not available in store');
+      console.error("generateFromTemplate is not available in store");
     }
   };
 
@@ -33,42 +33,72 @@ export default function Sidebar({ onAdd }) {
             Add Elements
           </h3>
 
+          {/* Heading */}
           <button
             onClick={() => onAdd("heading")}
             className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900/50 hover:bg-neutral-800/70 border border-neutral-800/50 hover:border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white transition-all duration-200 group"
           >
             <div className="p-1.5 rounded-lg bg-neutral-800/50 group-hover:bg-blue-600/20 transition-colors duration-200">
-              <Heading1 size={16} className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200" />
+              <Heading1
+                size={16}
+                className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200"
+              />
             </div>
             <span className="font-medium">Heading</span>
           </button>
 
+          {/* Text */}
           <button
             onClick={() => onAdd("text")}
             className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900/50 hover:bg-neutral-800/70 border border-neutral-800/50 hover:border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white transition-all duration-200 group"
           >
             <div className="p-1.5 rounded-lg bg-neutral-800/50 group-hover:bg-blue-600/20 transition-colors duration-200">
-              <Type size={16} className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200" />
+              <Type
+                size={16}
+                className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200"
+              />
             </div>
             <span className="font-medium">Text Block</span>
           </button>
 
+          {/* Link ✅ NEW */}
+          <button
+            onClick={() => onAdd("link")}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900/50 hover:bg-neutral-800/70 border border-neutral-800/50 hover:border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white transition-all duration-200 group"
+          >
+            <div className="p-1.5 rounded-lg bg-neutral-800/50 group-hover:bg-blue-600/20 transition-colors duration-200">
+              <Link2
+                size={16}
+                className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200"
+              />
+            </div>
+            <span className="font-medium">Link</span>
+          </button>
+
+          {/* Bullet List */}
           <button
             onClick={() => onAdd("list")}
             className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900/50 hover:bg-neutral-800/70 border border-neutral-800/50 hover:border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white transition-all duration-200 group"
           >
             <div className="p-1.5 rounded-lg bg-neutral-800/50 group-hover:bg-blue-600/20 transition-colors duration-200">
-              <List size={16} className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200" />
+              <List
+                size={16}
+                className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200"
+              />
             </div>
             <span className="font-medium">Bullet List</span>
           </button>
 
+          {/* Divider */}
           <button
             onClick={() => onAdd("divider")}
             className="w-full flex items-center gap-3 px-4 py-3 bg-neutral-900/50 hover:bg-neutral-800/70 border border-neutral-800/50 hover:border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white transition-all duration-200 group"
           >
             <div className="p-1.5 rounded-lg bg-neutral-800/50 group-hover:bg-blue-600/20 transition-colors duration-200">
-              <Minus size={16} className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200" />
+              <Minus
+                size={16}
+                className="text-neutral-400 group-hover:text-blue-400 transition-colors duration-200"
+              />
             </div>
             <span className="font-medium">Divider</span>
           </button>
@@ -94,7 +124,8 @@ export default function Sidebar({ onAdd }) {
         {/* Keyboard Shortcuts Hint */}
         <div className="mt-4 p-3 bg-neutral-900/30 border border-neutral-800/30 rounded-lg">
           <p className="text-[10px] text-neutral-500 leading-relaxed">
-            <span className="font-semibold text-neutral-400">Tip:</span> Click any element on the canvas to edit its properties in the right panel.
+            <span className="font-semibold text-neutral-400">Tip:</span> Click any element on
+            the canvas to edit its properties in the right panel.
           </p>
         </div>
       </div>

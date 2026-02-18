@@ -301,7 +301,11 @@ export default function Canvas({ printRef }) {
                 return (
                   <div
                     key={page.id}
-                    onClick={() => setCurrentPage(page.id)}
+                    onClick={(e) => {
+                      // ✅ If user clicked a link, do NOT change page / re-render
+                      if (e.target.closest("a")) return;
+                      setCurrentPage(page.id);
+                    }}                    
                     className={`transition-all duration-200 ${
                       isCurrentPage 
                         ? 'ring-2 ring-blue-500 shadow-2xl shadow-blue-500/10' 

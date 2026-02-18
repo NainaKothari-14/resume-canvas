@@ -2,28 +2,62 @@ import { useEditorStore } from "../store/editorStore";
 import { memo, useCallback, useState } from "react";
 import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 
-// ✅ Basic field component
-const FormField = memo(({ label, value, placeholder, onChangeText, rows }) => (
-  <div>
-    <label className="block text-xs font-medium text-neutral-400 mb-1">{label}</label>
-    {rows ? (
-      <textarea
-        className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-700 resize-none"
-        value={value}
-        onChange={(e) => onChangeText(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-      />
-    ) : (
-      <input
-        className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-700"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChangeText(e.target.value)}
-      />
-    )}
-  </div>
-));
+/** ✅ Add https:// if user didn't type it */
+const formatUrl = (url) => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+};
+
+/** ✅ Basic field component (now supports link preview) */
+const FormField = memo(
+  ({ label, value, placeholder, onChangeText, rows, isLinkPreview = false }) => {
+    const safeValue = value || "";
+    const href = isLinkPreview ? formatUrl(safeValue) : "";
+
+    return (
+      <div className="space-y-1">
+        <label className="block text-xs font-medium text-neutral-400 mb-1">
+          {label}
+        </label>
+
+        {rows ? (
+          <textarea
+            className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-700 resize-none"
+            value={safeValue}
+            onChange={(e) => onChangeText(e.target.value)}
+            placeholder={placeholder}
+            rows={rows}
+          />
+        ) : (
+          <input
+            className="w-full px-3 py-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-100 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-700"
+            value={safeValue}
+            placeholder={placeholder}
+            onChange={(e) => onChangeText(e.target.value)}
+          />
+        )}
+
+        {/* ✅ Clickable link preview */}
+        {isLinkPreview && safeValue.trim() && (
+          <div className="text-xs">
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:underline break-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Open: {safeValue}
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
 FormField.displayName = "FormField";
 
@@ -34,6 +68,7 @@ const Section = ({ title, children, defaultOpen = false }) => {
   return (
     <div className="border border-neutral-800 rounded-xl bg-neutral-950">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-neutral-200 hover:bg-neutral-900 rounded-xl transition-colors"
       >
@@ -57,6 +92,7 @@ const ExperienceItem = memo(({ item, onUpdate, onDelete }) => {
           placeholder="Position"
         />
         <button
+          type="button"
           onClick={onDelete}
           className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
         >
@@ -93,13 +129,12 @@ const ExperienceItem = memo(({ item, onUpdate, onDelete }) => {
         className="w-full px-2 py-1.5 text-xs bg-neutral-950 border border-neutral-800 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-700 resize-none"
         value={item.description}
         onChange={(e) => onUpdate({ description: e.target.value })}
-        placeholder="• Achievement 1&#10;• Achievement 2"
+        placeholder={"• Achievement 1\n• Achievement 2"}
         rows={3}
       />
     </div>
   );
 });
-
 ExperienceItem.displayName = "ExperienceItem";
 
 // ✅ Skill Item
@@ -113,6 +148,7 @@ const SkillItem = memo(({ item, onUpdate, onDelete }) => (
         placeholder="Category (e.g., Backend)"
       />
       <button
+        type="button"
         onClick={onDelete}
         className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
       >
@@ -127,7 +163,6 @@ const SkillItem = memo(({ item, onUpdate, onDelete }) => (
     />
   </div>
 ));
-
 SkillItem.displayName = "SkillItem";
 
 // ✅ Education Item
@@ -141,6 +176,7 @@ const EducationItem = memo(({ item, onUpdate, onDelete }) => (
         placeholder="Degree"
       />
       <button
+        type="button"
         onClick={onDelete}
         className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
       >
@@ -175,7 +211,6 @@ const EducationItem = memo(({ item, onUpdate, onDelete }) => (
     </div>
   </div>
 ));
-
 EducationItem.displayName = "EducationItem";
 
 // ✅ Achievement Item
@@ -189,6 +224,7 @@ const AchievementItem = memo(({ item, onUpdate, onDelete }) => (
         placeholder="Achievement Title"
       />
       <button
+        type="button"
         onClick={onDelete}
         className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
       >
@@ -204,7 +240,6 @@ const AchievementItem = memo(({ item, onUpdate, onDelete }) => (
     />
   </div>
 ));
-
 AchievementItem.displayName = "AchievementItem";
 
 // ✅ Project Item
@@ -218,6 +253,7 @@ const ProjectItem = memo(({ item, onUpdate, onDelete }) => (
         placeholder="Project Name"
       />
       <button
+        type="button"
         onClick={onDelete}
         className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors"
       >
@@ -245,12 +281,11 @@ const ProjectItem = memo(({ item, onUpdate, onDelete }) => (
     />
   </div>
 ));
-
 ProjectItem.displayName = "ProjectItem";
 
 // ✅ Main Form Component
 export default function ResumeForm() {
-  // Basic info selectors
+  // Basic info
   const fullName = useEditorStore((s) => s.resumeData.fullName);
   const headline = useEditorStore((s) => s.resumeData.headline);
   const email = useEditorStore((s) => s.resumeData.email);
@@ -337,18 +372,21 @@ export default function ResumeForm() {
           value={github || ""}
           placeholder="github.com/username"
           onChangeText={handleGithub}
+          isLinkPreview
         />
         <FormField
           label="LinkedIn"
           value={linkedin || ""}
           placeholder="linkedin.com/in/username"
           onChangeText={handleLinkedin}
+          isLinkPreview
         />
         <FormField
           label="Portfolio"
           value={portfolio || ""}
           placeholder="yourwebsite.com"
           onChangeText={handlePortfolio}
+          isLinkPreview
         />
       </Section>
 
@@ -363,7 +401,9 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("experience", item.id)}
             />
           ))}
+
           <button
+            type="button"
             onClick={() =>
               addSectionItem("experience", {
                 company: "Company Name",
@@ -393,7 +433,9 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("skills", item.id)}
             />
           ))}
+
           <button
+            type="button"
             onClick={() =>
               addSectionItem("skills", {
                 category: "Category",
@@ -419,7 +461,9 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("education", item.id)}
             />
           ))}
+
           <button
+            type="button"
             onClick={() =>
               addSectionItem("education", {
                 institution: "University Name",
@@ -449,7 +493,9 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("projects", item.id)}
             />
           ))}
+
           <button
+            type="button"
             onClick={() =>
               addSectionItem("projects", {
                 name: "Project Name",
@@ -477,7 +523,9 @@ export default function ResumeForm() {
               onDelete={() => deleteSectionItem("achievements", item.id)}
             />
           ))}
+
           <button
+            type="button"
             onClick={() =>
               addSectionItem("achievements", {
                 title: "Achievement Title",
