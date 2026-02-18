@@ -1,56 +1,54 @@
-import axios from "axios";
+import axios from 'axios';
 
-/**
- * ✅ Make base URL robust:
- * - If VITE_API_URL is set to ".../api" -> use it
- * - If VITE_API_URL is set to just the domain -> append "/api"
- * - If nothing set -> default to localhost backend "/api"
- */
-const RAW =
-  import.meta.env.VITE_API_URL?.trim() || "http://localhost:5000";
-
-const BASE = RAW.replace(/\/$/, ""); // remove trailing slash
-
-const API_URL = BASE.endsWith("/api") ? BASE : `${BASE}/api`;
+// Base API URL - change this based on environment
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
-  timeout: 20000, // a bit safer for Render cold start
-  withCredentials: true, // ✅ important if you ever use cookies
+  timeout: 10000, // 10 seconds
 });
 
 // Request interceptor (for future authentication)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken");
+    // Add auth token if available
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor (for error handling)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle specific error cases
     if (error.response) {
-      console.error("API Error:", error.response.data);
-
+      // Server responded with error status
+      console.error('API Error:', error.response.data);
+      
       if (error.response.status === 401) {
-        localStorage.removeItem("authToken");
+        // Unauthorized - clear token and redirect to login
+        localStorage.removeItem('authToken');
+        // window.location.href = '/login'; // Uncomment when you have auth
       }
     } else if (error.request) {
-      console.error("Network Error:", error.request);
+      // Request made but no response
+      console.error('Network Error:', error.request);
     } else {
-      console.error("Error:", error.message);
+      // Something else happened
+      console.error('Error:', error.message);
     }
-
+    
     return Promise.reject(error);
   }
 );
@@ -60,43 +58,51 @@ api.interceptors.response.use(
 // ============================================
 
 export const resumeAPI = {
+  // Get all resumes with optional filters
   getAll: async (params = {}) => {
-    const response = await api.get("/resumes", { params });
+    const response = await api.get('/resumes', { params });
     return response.data;
   },
 
+  // Get single resume by ID
   getById: async (id) => {
     const response = await api.get(`/resumes/${id}`);
     return response.data;
   },
 
+  // Create new resume
   create: async (resumeData) => {
-    const response = await api.post("/resumes", resumeData);
+    const response = await api.post('/resumes', resumeData);
     return response.data;
   },
 
+  // Update resume
   update: async (id, resumeData) => {
     const response = await api.put(`/resumes/${id}`, resumeData);
     return response.data;
   },
 
+  // Delete resume
   delete: async (id) => {
     const response = await api.delete(`/resumes/${id}`);
     return response.data;
   },
 
+  // Duplicate resume
   duplicate: async (id) => {
     const response = await api.post(`/resumes/${id}/duplicate`);
     return response.data;
   },
 
+  // Auto-save resume (partial update)
   autoSave: async (id, data) => {
     const response = await api.patch(`/resumes/${id}/autosave`, data);
     return response.data;
   },
 
+  // Get statistics
   getStats: async () => {
-    const response = await api.get("/resumes/stats");
+    const response = await api.get('/resumes/stats');
     return response.data;
   },
 };
@@ -107,12 +113,13 @@ export const resumeAPI = {
 
 export const healthCheck = async () => {
   try {
-    const response = await api.get("/health");
+    const response = await api.get('/health');
     return response.data;
   } catch (error) {
-    console.error("Health check failed:", error);
-    return { success: false, message: "Server is down" };
+    console.error('Health check failed:', error);
+    return { success: false, message: 'Server is down' };
   }
 };
 
+// Export the axios instance for custom requests
 export default api;
