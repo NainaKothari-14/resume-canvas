@@ -7,6 +7,21 @@ A modern, feature-rich resume builder with real-time editing, multi-page support
 
 [![GitHub](https://img.shields.io/badge/⭐_Star-on%20GitHub-yellow?style=for-the-badge&logo=github)](https://github.com/NainaKothari-14/resume-canvas)
 
+---
+
+## 🛠️ Built With
+
+![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Node.js](https://img.shields.io/badge/Node.js-16+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-5+-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Zustand](https://img.shields.io/badge/Zustand-State_Management-000000?style=for-the-badge)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+
+---
+
 ## 🚀 TL;DR Quick Start
 
 ```bash
@@ -141,7 +156,7 @@ ResumeCanvas reimagines resume creation with a professional visual editor that c
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────┐ │
 │  │   Routes     │→ │ Controllers  │→ │   Models  │ │
 │  │  /resumes    │  │  (Business   │  │ (Mongoose)│ │
-│  │              │  │   Logic)     │  │           │ │
+│  │   /auth      │  │   Logic)     │  │  Schemas  │ │
 │  └──────────────┘  └──────────────┘  └───────────┘ │
 │                                          │           │
 └──────────────────────────────────────────┼───────────┘
@@ -152,15 +167,70 @@ ResumeCanvas reimagines resume creation with a professional visual editor that c
                                     └─────────────┘
 ```
 
+### **What is Business Logic?**
+
+**Business Logic** is the core of your application - the layer that contains all the rules, validations, and operations specific to your business domain. In ResumeCanvas:
+
+**Examples of Business Logic:**
+- **Validation**: Ensuring resume titles are not empty
+- **Data Transformation**: Converting user input into the correct format
+- **Business Rules**: "A resume must have at least a title and basic info"
+- **Calculations**: Counting blocks, pages, calculating last modified dates
+- **Authorization**: Checking if a user can edit/delete a resume
+- **Data Processing**: Duplicating a resume with a "(Copy)" suffix
+
+**In the Controller Layer:**
+```javascript
+// Example: Business Logic in Resume Controller
+async createResume(req, res) {
+  // ✅ Validation (Business Logic)
+  if (!req.body.title) {
+    return res.status(400).json({ 
+      error: 'Title is required' 
+    });
+  }
+  
+  // ✅ Data Transformation (Business Logic)
+  const resumeData = {
+    title: req.body.title.trim(),
+    blocks: req.body.blocks || [],
+    // Auto-generate lastModified
+    lastModified: new Date(),
+  };
+  
+  // ✅ Business Rule (Business Logic)
+  // Ensure at least one page exists
+  if (!resumeData.pages || resumeData.pages.length === 0) {
+    resumeData.pages = [{ id: 'page-1', width: 794, height: 1123 }];
+  }
+  
+  // Database operation (handled by Model)
+  const resume = await Resume.create(resumeData);
+  
+  res.status(201).json({ success: true, data: resume });
+}
+```
+
+**Why Separate Business Logic?**
+- **Maintainability**: Easy to find and update rules
+- **Testability**: Can test logic without database
+- **Reusability**: Same logic can be used in multiple routes
+- **Clean Code**: Keeps routes thin and focused
+
+---
+
 **Request Flow:**
 1. User interacts with React frontend (Dashboard or Editor)
 2. State updates via Zustand store
 3. API calls made to Express backend
-4. Mongoose models validate and save to MongoDB
-5. Response sent back to frontend
-6. UI updates with new data
+4. **Routes** receive the request and pass to appropriate controller
+5. **Controllers** execute business logic (validate, transform, apply rules)
+6. **Models** handle database operations (save, update, delete)
+7. Response sent back to frontend
+8. UI updates with new data
 
 **Key Design Patterns:**
+- **MVC Architecture**: Separation of concerns (Routes → Controllers → Models)
 - **RESTful API**: Standard HTTP methods for CRUD operations
 - **State Management**: Zustand for predictable state updates
 - **Component Architecture**: Reusable React components
@@ -849,7 +919,7 @@ PORT=5001
 
 ## 🗺️ Roadmap
 
-### Short-term (v1.1 - Q2 2024)
+### Short-term (v1.1)
 - [ ] User authentication and accounts
 - [ ] Resume templates (Professional, Creative, Minimalist)
 - [ ] Drag-and-drop section reordering
@@ -859,7 +929,7 @@ PORT=5001
 - [ ] Resume analytics (views, downloads)
 - [ ] Public sharing links
 
-### Mid-term (v1.5 - Q3 2024)
+### Mid-term (v1.5)
 - [ ] AI-powered content suggestions
 - [ ] Grammar and spell check
 - [ ] Resume scoring and tips
@@ -869,7 +939,7 @@ PORT=5001
 - [ ] Collaborative editing
 - [ ] Mobile-responsive editor
 
-### Long-term (v2.0 - Q4 2024)
+### Long-term (v2.0)
 - [ ] LinkedIn import
 - [ ] Job application tracker
 - [ ] Browser extension
@@ -956,4 +1026,3 @@ This project represents a commitment to making professional resume creation acce
 ---
 
 **⚡ Built with passion by developers, for developers ⚡**
-```
