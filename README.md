@@ -8,8 +8,8 @@
 [![Issues](https://img.shields.io/github/issues/NainaKothari-14/resume-canvas?style=flat-square&color=ef4444)](https://github.com/NainaKothari-14/resume-canvas/issues)
 
 [![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org)
-[![Node.js](https://img.shields.io/badge/Node.js_16+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
-[![Express](https://img.shields.io/badge/Express_4-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
+[![Node.js](https://img.shields.io/badge/Node.js_18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![Express](https://img.shields.io/badge/Express_5-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
 [![MongoDB](https://img.shields.io/badge/MongoDB_5+-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
 [![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
@@ -40,7 +40,7 @@
 
 ## Overview
 
-**ResumeCanvas** reimagines resume creation with a professional visual editor that combines drag-and-drop flexibility with structured form-based editing. Unlike traditional resume builders, it gives you complete control over layout while maintaining polished, professional formatting — and exports a pixel-perfect, link-preserving PDF in one click.
+**ResumeCanvas** is a drag-and-drop resume editor built on the MERN stack. It combines a freeform visual canvas with structured sidebar forms, so you get full layout control without sacrificing professional formatting. Fill in your details, arrange blocks exactly how you want them, and export a link-preserving PDF in one click.
 
 ---
 
@@ -107,14 +107,13 @@ cd resume-canvas-client && npm install && npm run dev
 ### 💼 Resume Sections
 | Section | Details |
 |---|---|
-| Basic Info | Name, headline, phone, email, location |
+| Basic Info | Name, headline, phone, email, location, GitHub, LinkedIn, Portfolio |
 | Summary | Professional summary / objective |
-| Experience | Multiple entries with dates & description |
-| Skills | Categorized skill groups |
+| Experience | Multiple entries with company, role, dates & description |
+| Skills | Categorized skill groups (e.g. "Backend: Node, Express") |
 | Education | Degree, institution, dates, GPA |
-| Projects | Name, tech stack, description, link |
+| Projects | Name, tech stack, description, clickable link |
 | Achievements | Awards, certifications, milestones |
-| Social Links | GitHub, LinkedIn, Portfolio |
 
 ### 📊 Resume Dashboard
 - Grid and list view for your resume library
@@ -186,7 +185,7 @@ cd resume-canvas-client && npm install && npm run dev
 | React Router | Client-side routing |
 | Tailwind CSS | Utility-first styling |
 | react-rnd | Drag and resize canvas elements |
-| react-to-print | Client-side PDF generation |
+| react-to-print | Triggers browser print dialog for PDF export (Save as PDF) |
 | Lucide React | Icon library |
 
 **Backend**
@@ -207,7 +206,7 @@ cd resume-canvas-client && npm install && npm run dev
 
 ### Prerequisites
 
-- **Node.js** 16+ and **npm** 8+
+- **Node.js** 18+ (Node 20 LTS recommended) and **npm** 9+
 - **MongoDB** 5+ (local installation or [MongoDB Atlas](https://www.mongodb.com/atlas))
 - A modern browser (Chrome, Firefox, Safari, Edge)
 
@@ -233,7 +232,11 @@ Create a `.env` file in `resume-canvas-server/`:
 MONGODB_URI=mongodb://localhost:27017/resume-canvas
 PORT=5000
 NODE_ENV=development
-CORS_ORIGIN=http://localhost:5173
+CLIENT_URL=http://localhost:5173
+JWT_SECRET=change-me
+JWT_EXPIRE=7d
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_WINDOW_MS=900000
 ```
 
 Start MongoDB if running locally:
@@ -406,13 +409,16 @@ MONGODB_URI=mongodb://localhost:27017/resume-canvas
 PORT=5000
 NODE_ENV=development
 
-# CORS
-CORS_ORIGIN=http://localhost:5173
+# CORS — must match your frontend origin exactly
+CLIENT_URL=http://localhost:5173
 
-# Optional
-JWT_SECRET=your-secret-key-here
-RATE_LIMIT_MAX=100
-RATE_LIMIT_WINDOW=15
+# Auth (required even if auth is not yet fully implemented)
+JWT_SECRET=change-me-to-a-long-random-string
+JWT_EXPIRE=7d
+
+# Rate Limiting
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_WINDOW_MS=900000
 ```
 
 ### Frontend — `resume-canvas-client/.env`
@@ -509,15 +515,17 @@ After deploying the backend, update `VITE_API_URL` in your frontend environment 
 **Already implemented:**
 
 - `helmet` — sets secure HTTP headers (XSS protection, MIME sniffing prevention, etc.)
-- CORS restricted to specified origins
+- CORS restricted to `CLIENT_URL` origin
 - API rate limiting via `express-rate-limit`
 - Mongoose schema-level input validation
 - Error messages sanitized (no stack traces in production)
 
+**PDF export note:** PDF generation uses `react-to-print` to trigger the browser's native print dialog (Save as PDF). Clickable links are preserved because the browser renders the live DOM into the PDF — no server-side generation involved.
+
 **Recommended additions:**
 
-- JWT-based authentication (scaffold included in `/security` notes)
-- HTML input sanitization with [DOMPurify](https://github.com/cure53/DOMPurify)
+- JWT-based authentication (`JWT_SECRET` env var is already scaffolded)
+- Input sanitization — the canvas editor uses `contentEditable`, which stores plain text. If you ever persist HTML, add [DOMPurify](https://github.com/cure53/DOMPurify) before saving to the database
 - CSRF protection
 - Regular dependency audits: `npm audit fix`
 - HTTPS enforced in production
@@ -605,10 +613,10 @@ net start MongoDB
 <details>
 <summary><strong>CORS error</strong> in the browser console</summary>
 
-Verify your backend `.env` has the correct frontend origin:
+Verify your backend `.env` has the correct frontend origin — the key is `CLIENT_URL`, not `CORS_ORIGIN`:
 
 ```env
-CORS_ORIGIN=http://localhost:5173
+CLIENT_URL=http://localhost:5173
 ```
 
 Then restart the backend server.
