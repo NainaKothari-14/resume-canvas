@@ -1,13 +1,11 @@
-<div align="center">
+# 📄 ResumeCanvas
 
-<img src="https://img.shields.io/badge/ResumeCanvas-Professional%20Resume%20Builder-6366f1?style=for-the-badge&labelColor=0f172a" alt="ResumeCanvas" />
+> A full-stack MERN resume builder with a visual drag-and-drop canvas editor, real-time preview, and one-click PDF export.
 
-<br/>
-<br/>
-
-<p>A full-stack MERN application for creating, editing, and exporting professional resumes — with a visual drag-and-drop canvas editor, real-time preview, and high-quality PDF export.</p>
-
-<br/>
+[![Live Demo](https://img.shields.io/badge/Live_Demo-resume--canvas--zeta.vercel.app-6366f1?style=flat-square&logo=vercel&logoColor=white)](https://resume-canvas-zeta.vercel.app/)
+[![GitHub Stars](https://img.shields.io/github/stars/NainaKothari-14/resume-canvas?style=flat-square&logo=github&color=f59e0b)](https://github.com/NainaKothari-14/resume-canvas/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+[![Issues](https://img.shields.io/github/issues/NainaKothari-14/resume-canvas?style=flat-square&color=ef4444)](https://github.com/NainaKothari-14/resume-canvas/issues)
 
 [![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org)
 [![Node.js](https://img.shields.io/badge/Node.js_16+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
@@ -16,23 +14,13 @@
 [![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-<br/>
-
-[![GitHub Stars](https://img.shields.io/github/stars/NainaKothari-14/resume-canvas?style=flat-square&logo=github&color=f59e0b)](https://github.com/NainaKothari-14/resume-canvas/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/NainaKothari-14/resume-canvas?style=flat-square&color=ef4444)](https://github.com/NainaKothari-14/resume-canvas/issues)
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
-
-<br/>
-
-[**Live Demo**](https://resume-canvas.vercel.app) · [**Report a Bug**](https://github.com/NainaKothari-14/resume-canvas/issues) · [**Request a Feature**](https://github.com/NainaKothari-14/resume-canvas/discussions)
-
-</div>
-
 ---
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Quick Start](#-quick-start)
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
@@ -53,6 +41,50 @@
 ## Overview
 
 **ResumeCanvas** reimagines resume creation with a professional visual editor that combines drag-and-drop flexibility with structured form-based editing. Unlike traditional resume builders, it gives you complete control over layout while maintaining polished, professional formatting — and exports a pixel-perfect, link-preserving PDF in one click.
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repo
+git clone https://github.com/NainaKothari-14/resume-canvas.git
+cd resume-canvas
+
+# Backend
+cd resume-canvas-server && npm install && npm run dev
+# → running on http://localhost:5000
+
+# Frontend (open a new terminal)
+cd resume-canvas-client && npm install && npm run dev
+# → running on http://localhost:5173
+```
+
+> Make sure MongoDB is running locally and create a `.env` in `resume-canvas-server/` — see [Getting Started](#getting-started) for the full setup.
+
+---
+
+## Screenshots
+
+### Dashboard — Resume Library
+![Dashboard](screenshots/Dashboard.png)
+*Manage all your resumes in one place with search, sort, and quick actions*
+
+### Resume Editor
+![Editor](screenshots/Editor.png)
+*Visual canvas editor with sidebar forms for structured data entry*
+
+### Form Editing
+![Form Editing](screenshots/FormEditing.png)
+*Organized sidebar forms for all resume sections with collapsible panels*
+
+### Canvas Editing
+![Canvas Editing](screenshots/CanvasEditing.png)
+*Drag, resize, and position elements with precision on the visual canvas*
+
+### PDF Export
+![PDF Export](screenshots/ExportPDF.png)
+*High-quality PDF export with clickable links and professional formatting*
 
 ---
 
