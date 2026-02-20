@@ -67,23 +67,28 @@ cd resume-canvas-client && npm install && npm run dev
 ## Screenshots
 
 ### Dashboard — Resume Library
-![Dashboard](screenshots/Dashboard.png)
+<img src="screenshots/Dashboard.png" width="70%" alt="Dashboard" />
+
 *Manage all your resumes in one place with search, sort, and quick actions*
 
 ### Resume Editor
-![Editor](screenshots/Editor.png)
+<img src="screenshots/Editor.png" width="70%" alt="Editor" />
+
 *Visual canvas editor with sidebar forms for structured data entry*
 
 ### Form Editing
-![Form Editing](screenshots/FormEditing.png)
+<img src="screenshots/FormEditing.png" width="70%" alt="Form Editing" />
+
 *Organized sidebar forms for all resume sections with collapsible panels*
 
 ### Canvas Editing
-![Canvas Editing](screenshots/CanvasEditing.png)
+<img src="screenshots/CanvasEditing.png" width="70%" alt="Canvas Editing" />
+
 *Drag, resize, and position elements with precision on the visual canvas*
 
 ### PDF Export
-![PDF Export](screenshots/ExportPDF.png)
+<img src="screenshots/ExportPDF.png" width="70%" alt="PDF Export" />
+
 *High-quality PDF export with clickable links and professional formatting*
 
 ---
@@ -681,7 +686,6 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for full details
 
 [![GitHub](https://img.shields.io/badge/GitHub-NainaKothari--14-181717?style=flat-square&logo=github)](https://github.com/NainaKothari-14)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-naina--kothari-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/naina-kothari)
-[![Portfolio](https://img.shields.io/badge/Portfolio-nainakothari.dev-6366f1?style=flat-square)](https://your-portfolio.com)
 
 ---
 
