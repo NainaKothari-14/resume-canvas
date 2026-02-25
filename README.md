@@ -1,4 +1,4 @@
-# 📄 ResumeCanvas
+# 📄 Resume Canvas
 
 > A full-stack MERN resume builder with a visual drag-and-drop canvas editor, real-time preview, and one-click PDF export.
 
